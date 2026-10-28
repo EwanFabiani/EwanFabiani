@@ -1,0 +1,197 @@
+:root {
+  --bg: #fdfdf8;
+  --fg: #1d1d1b;
+  --muted: #7c7c74;
+  --link: #1d4ed8;
+  --mark: #fff3a8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161614;
+    --fg: #dcdcd2;
+    --muted: #85857b;
+    --link: #93b4ff;
+    --mark: #4a4320;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    14px/1.65 "IBM Plex Mono",
+    ui-monospace,
+    Consolas,
+    monospace;
+  padding: 48px 16px 96px;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 16px 12px 64px;
+  }
+}
+
+main {
+  max-width: 72ch;
+  margin: 0 auto;
+}
+a {
+  color: var(--link);
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  color: var(--muted);
+}
+.head div {
+  display: flex;
+  flex-direction: column;
+}
+.head div:last-child {
+  text-align: right;
+}
+h1 {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 40px 0 4px;
+}
+.sub {
+  text-align: center;
+  color: var(--muted);
+  margin: 0 0 32px;
+}
+h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 40px 0 8px;
+}
+p {
+  margin: 0 0 14px;
+}
+.indent {
+  padding-left: 3ch;
+}
+ol,
+ul {
+  margin: 0 0 14px;
+  padding-left: 3ch;
+}
+li {
+  margin-bottom: 4px;
+}
+ul {
+  list-style: none;
+}
+ul li::before {
+  content: "o  ";
+  color: var(--muted);
+  margin-left: -3ch;
+}
+.toc {
+  padding-left: 3ch;
+}
+.toc a {
+  color: var(--fg);
+  text-decoration: none;
+  display: flex;
+}
+.toc a span.dots {
+  flex: 1;
+  border-bottom: 1px dotted var(--muted);
+  margin: 0 6px 6px;
+}
+.toc a:hover {
+  color: var(--link);
+}
+.must {
+  background: var(--mark);
+  padding: 0 3px;
+}
+.ref {
+  color: var(--muted);
+}
+hr {
+  border: 0;
+  border-top: 1px dashed var(--muted);
+  margin: 32px 0;
+}
+footer {
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.status {
+  font-style: italic;
+  color: var(--muted);
+}
+
+@media (max-width: 600px) {
+  .head {
+    display: block;
+    font-size: clamp(8px, 3.3vw, 12px);
+  }
+  .head div {
+    display: contents;
+  }
+  .head span {
+    display: block;
+    white-space: nowrap;
+  }
+  .head div:last-child {
+    text-align: left;
+  }
+}
+
+.blog-back {
+  color: var(--muted);
+  text-decoration: none;
+}
+.blog-back:hover {
+  color: var(--link);
+}
+.blog-title {
+  text-align: left;
+  margin-top: 40px;
+}
+.blog-intro,
+.blog-status,
+.blog-date {
+  color: var(--muted);
+}
+.blog-post {
+  border-top: 1px dashed var(--muted);
+  margin-top: 32px;
+  padding-top: 16px;
+}
+.blog-post h2 {
+  margin: 0 0 4px;
+}
+.blog-post h2 a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.blog-post h2 a:hover,
+.blog-read-more:hover {
+  color: var(--link);
+}
+.blog-excerpt {
+  color: var(--muted);
+}
+.blog-read-more {
+  text-decoration: none;
+}
+.blog-date {
+  margin-bottom: 16px;
+}
+.blog-content > :last-child {
+  margin-bottom: 0;
+}
