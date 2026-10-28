@@ -2,4 +2,4 @@
 
 Welcome to my GitHub profile!
 
-Feel free to look at some of my pinned repositories or look at [my website](https://ewanfabiani.com).
+Feel free to look at some of my pinned repositories or at [my website](https://ewanfabiani.com).
