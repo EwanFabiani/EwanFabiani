@@ -20,7 +20,7 @@ jobs:
       SERVER_USER: ${{ secrets.SERVER_USER }}
       SERVER_PORT: ${{ secrets.SERVER_PORT }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-      SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOST }}
+      SERVER_KNOWN_HOST: ${{ secrets.SERVER_KNOWN_HOST }}
 
     steps:
       - name: Check out source
@@ -44,7 +44,7 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$SERVER_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$SERVER_KNOWN_HOST" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
       - name: Copy project to VPS
