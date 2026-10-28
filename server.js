@@ -9,14 +9,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const blogDirectory = path.join(root, "blog");
 const canonicalOrigin = "https://ewanfabiani.com";
 const staticFiles = new Map([
-  ["/", path.join(root, "index.html")],
-  ["/index.html", path.join(root, "index.html")],
   ["/style.css", path.join(root, "style.css")],
-  ["/script.js", path.join(root, "script.js")],
-  ["/blog/", path.join(blogDirectory, "index.html")],
-  ["/blog/index.html", path.join(blogDirectory, "index.html")],
-  ["/blog/blog.js", path.join(blogDirectory, "blog.js")],
-  ["/blog/post.html", path.join(blogDirectory, "post.html")],
 ]);
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -35,6 +28,42 @@ function escapeHtml(value) {
     };
     return entities[character];
   });
+}
+
+function renderRecentPosts(posts) {
+  const recentPosts = posts.slice(0, 5);
+  const items = recentPosts.map((post) => {
+    const date = post.date ? `${escapeHtml(post.date)} ` : "";
+    const href = `/blog/${encodeURIComponent(post.slug)}/`;
+    return `<li>${date}<a href="${escapeHtml(href)}">${escapeHtml(post.title)}</a></li>`;
+  });
+
+  if (recentPosts.length < 5) {
+    items.push("<li>Cookin' up more posts. Soon (maybe)...</li>");
+  }
+
+  return items.join("\n        ");
+}
+
+function renderBlogPosts(posts) {
+  if (posts.length === 0) {
+    return "<p class=\"blog-status\">No posts yet. I'm probably still hypnotized by the blinking cursor.</p>";
+  }
+
+  return posts
+    .map((post) => {
+      const href = `/blog/${encodeURIComponent(post.slug)}/`;
+      const date = post.date
+        ? `<p class="blog-date">${escapeHtml(post.date)}</p>`
+        : "";
+      return `<article class="blog-post">
+        <h2><a href="${escapeHtml(href)}">${escapeHtml(post.title)}</a></h2>
+        ${date}
+        <p class="blog-excerpt">${escapeHtml(post.excerpt)}</p>
+        <a class="blog-read-more" href="${escapeHtml(href)}">Read post</a>
+      </article>`;
+    })
+    .join("\n");
 }
 
 function getFrontmatter(markdown) {
@@ -94,15 +123,6 @@ async function getPosts() {
   );
 }
 
-function sendJson(response, statusCode, data) {
-  response.writeHead(statusCode, {
-    "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff",
-  });
-  response.end(JSON.stringify(data));
-}
-
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, "http://localhost");
 
@@ -112,51 +132,78 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (url.pathname === "/api/blogs") {
+  if (url.pathname === "/blog") {
+    response.writeHead(301, { Location: `/blog/${url.search}` });
+    response.end();
+    return;
+  }
+
+  if (url.pathname === "/" || url.pathname === "/index.html") {
     try {
-      const posts = await getPosts();
-      sendJson(
-        response,
-        200,
-        posts.map(({ html, ...post }) => post),
-      );
+      const [template, posts] = await Promise.all([
+        readFile(path.join(root, "index.html"), "utf8"),
+        getPosts(),
+      ]);
+      const body = template.replace("__RECENT_POSTS__", renderRecentPosts(posts));
+      response.writeHead(200, {
+        "Content-Type": mimeTypes[".html"],
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(body);
     } catch (error) {
-      console.error("Failed to load blog posts:", error);
-      sendJson(response, 500, { error: "Unable to load blog posts." });
+      console.error("Failed to render homepage:", error);
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Unable to load homepage.");
     }
     return;
   }
 
-  const postApiMatch = url.pathname.match(/^\/api\/blogs\/([^/]+)$/);
-  if (postApiMatch) {
-    try {
-      const slug = decodeURIComponent(postApiMatch[1]);
-      const post = (await getPosts()).find((entry) => entry.slug === slug);
-      if (!post) {
-        sendJson(response, 404, { error: "Blog post not found." });
-        return;
-      }
+  if (url.pathname === "/blog/" || url.pathname === "/blog/index.html") {
+    if (url.pathname === "/blog/index.html") {
+      response.writeHead(301, { Location: `/blog/${url.search}` });
+      response.end();
+      return;
+    }
 
-      sendJson(response, 200, post);
+    try {
+      const [template, posts] = await Promise.all([
+        readFile(path.join(blogDirectory, "index.html"), "utf8"),
+        getPosts(),
+      ]);
+      const body = template.replace("__BLOG_POSTS__", renderBlogPosts(posts));
+      response.writeHead(200, {
+        "Content-Type": mimeTypes[".html"],
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(body);
     } catch (error) {
-      console.error("Failed to load blog post:", error);
-      sendJson(response, 500, { error: "Unable to load blog post." });
+      console.error("Failed to render blog index:", error);
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Unable to load blog index.");
     }
     return;
   }
 
   const postPageMatch = url.pathname.match(/^\/blog\/([^/]+)\/?$/);
-  if (postPageMatch && !staticFiles.has(url.pathname)) {
+  if (postPageMatch) {
     try {
       const slug = decodeURIComponent(postPageMatch[1]);
+      if (!url.pathname.endsWith("/")) {
+        response.writeHead(301, {
+          Location: `/blog/${encodeURIComponent(slug)}/${url.search}`,
+        });
+        response.end();
+        return;
+      }
+
       const post = (await getPosts()).find((entry) => entry.slug === slug);
       if (!post) {
         response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
         response.end("Blog post not found.");
         return;
       }
-      const template = await readFile(staticFiles.get("/blog/post.html"), "utf8");
-      const canonicalUrl = `${canonicalOrigin}/blog/${encodeURIComponent(slug)}`;
+      const template = await readFile(path.join(blogDirectory, "post.html"), "utf8");
+      const canonicalUrl = `${canonicalOrigin}/blog/${encodeURIComponent(slug)}/`;
       const dateMarkup = post.date
         ? `<p class="blog-date">${escapeHtml(post.date)}</p>`
         : "";
