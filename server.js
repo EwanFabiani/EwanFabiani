@@ -11,6 +11,14 @@ const projectsDirectory = path.join(root, "projects");
 const canonicalOrigin = "https://ewanfabiani.com";
 const siteDescription =
   "Ewan Fabiani's personal website featuring software projects, technical writing, and developer experiences.";
+const notFoundMessages = [
+  "This page was never ratified by the RFC committee.",
+  "Congratulations, you found an undocumented endpoint.",
+  "This URL has been deprecated due to lack of funding.",
+  "Page not found. Maybe it's still \"coming soon.\"",
+  "Have you tried turning the internet off and on again?",
+  "This endpoint has gone to touch grass.",
+];
 const featuredProjectFilenames = ["d5-crypto.md"];
 const staticFiles = new Map([
   ["/robots.txt", path.join(root, "robots.txt")],
@@ -159,6 +167,27 @@ function renderSitemap(posts, projects) {
     .join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
+}
+
+async function serveNotFound(response) {
+  try {
+    const template = await readFile(path.join(root, "404.html"), "utf8");
+    const message =
+      notFoundMessages[Math.floor(Math.random() * notFoundMessages.length)];
+    const body = template.replace(
+      "__NOT_FOUND_MESSAGE__",
+      escapeHtml(message),
+    );
+    response.writeHead(404, {
+      "Content-Type": mimeTypes[".html"],
+      "X-Content-Type-Options": "nosniff",
+    });
+    response.end(body);
+  } catch (error) {
+    console.error("Failed to render 404 page:", error);
+    response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Unable to load 404 page.");
+  }
 }
 
 function getFrontmatter(markdown) {
@@ -365,8 +394,7 @@ const server = createServer(async (request, response) => {
 
       const project = (await getProjects()).find((entry) => entry.slug === slug);
       if (!project) {
-        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-        response.end("Project not found.");
+        await serveNotFound(response);
         return;
       }
 
@@ -435,8 +463,7 @@ const server = createServer(async (request, response) => {
 
       const post = (await getPosts()).find((entry) => entry.slug === slug);
       if (!post) {
-        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-        response.end("Blog post not found.");
+        await serveNotFound(response);
         return;
       }
       const template = await readFile(path.join(blogDirectory, "post.html"), "utf8");
@@ -469,8 +496,7 @@ const server = createServer(async (request, response) => {
 
   const filePath = staticFiles.get(url.pathname);
   if (!filePath) {
-    response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-    response.end("Not found");
+    await serveNotFound(response);
     return;
   }
 
