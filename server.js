@@ -11,13 +11,28 @@ const projectsDirectory = path.join(root, "projects");
 const canonicalOrigin = "https://ewanfabiani.com";
 const featuredProjectFilenames = ["d5-crypto.md"];
 const staticFiles = new Map([
+  ["/robots.txt", path.join(root, "robots.txt")],
   ["/style.css", path.join(root, "style.css")],
 ]);
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
 };
+
+function escapeXml(value) {
+  return value.replace(/[&<>"']/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&apos;",
+    };
+    return entities[character];
+  });
+}
 
 function escapeHtml(value) {
   return value.replace(/[&<>"']/g, (character) => {
@@ -116,6 +131,32 @@ function renderProjectLinks(links) {
       )
       .join("\n    ")}
   </nav>`;
+}
+
+function renderSitemap(posts, projects) {
+  const urls = [
+    { loc: `${canonicalOrigin}/` },
+    { loc: `${canonicalOrigin}/blog/` },
+    { loc: `${canonicalOrigin}/projects/` },
+    ...posts.map((post) => ({
+      loc: `${canonicalOrigin}/blog/${encodeURIComponent(post.slug)}/`,
+      lastmod: post.date,
+    })),
+    ...projects.map((project) => ({
+      loc: `${canonicalOrigin}/projects/${encodeURIComponent(project.slug)}/`,
+    })),
+  ];
+
+  const entries = urls
+    .map(({ loc, lastmod }) => {
+      const lastmodMarkup = lastmod
+        ? `\n    <lastmod>${escapeXml(lastmod)}</lastmod>`
+        : "";
+      return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmodMarkup}\n  </url>`;
+    })
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
 function getFrontmatter(markdown) {
@@ -233,6 +274,22 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/blog") {
     response.writeHead(301, { Location: `/blog/${url.search}` });
     response.end();
+    return;
+  }
+
+  if (url.pathname === "/sitemap.xml") {
+    try {
+      const [posts, projects] = await Promise.all([getPosts(), getProjects()]);
+      response.writeHead(200, {
+        "Content-Type": "application/xml; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(renderSitemap(posts, projects));
+    } catch (error) {
+      console.error("Failed to render sitemap:", error);
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Unable to load sitemap.");
+    }
     return;
   }
 
