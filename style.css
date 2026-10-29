@@ -192,6 +192,15 @@ footer {
 .blog-date {
   margin-bottom: 16px;
 }
+.project-files {
+  margin-top: 16px;
+}
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0 0 24px;
+}
 .blog-content > :last-child {
   margin-bottom: 0;
 }

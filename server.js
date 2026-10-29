@@ -7,7 +7,9 @@ import sanitizeHtml from "sanitize-html";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const blogDirectory = path.join(root, "blog");
+const projectsDirectory = path.join(root, "projects");
 const canonicalOrigin = "https://ewanfabiani.com";
+const featuredProjectFilenames = ["d5-crypto.md"];
 const staticFiles = new Map([
   ["/style.css", path.join(root, "style.css")],
 ]);
@@ -66,21 +68,117 @@ function renderBlogPosts(posts) {
     .join("\n");
 }
 
+function renderProjects(projects) {
+  if (projects.length === 0) {
+    return '<p class="blog-status">No projects have been added yet. Check back soon.</p>';
+  }
+
+  return projects
+    .map(
+      (project) => `<article class="blog-post">
+        <h2><a href="/projects/${encodeURIComponent(project.slug)}/">${escapeHtml(project.title)}</a></h2>
+        <p class="blog-excerpt">${escapeHtml(project.description)}</p>
+        <a class="blog-read-more" href="/projects/${encodeURIComponent(project.slug)}/">Read project</a>
+      </article>`,
+    )
+    .join("\n");
+}
+
+function renderFeaturedProjects(projects) {
+  const featuredProjects = featuredProjectFilenames
+    .map((filename) => projects.find((project) => project.filename === filename))
+    .filter(Boolean);
+
+  if (featuredProjects.length === 0) {
+    return "<li>No featured projects yet.</li>";
+  }
+
+  return featuredProjects
+    .map(
+      (project) => `<li>
+          <a href="/projects/${encodeURIComponent(project.slug)}/">${escapeHtml(project.title)}</a>:
+          ${escapeHtml(project.description)}
+        </li>`,
+    )
+    .join("\n        ");
+}
+
+function renderProjectLinks(links) {
+  if (links.length === 0) {
+    return "";
+  }
+
+  return `<nav class="project-links" aria-label="Project links">
+    ${links
+      .map(
+        (link) =>
+          `<a href="${escapeHtml(link.url)}">${escapeHtml(link.label)} →</a>`,
+      )
+      .join("\n    ")}
+  </nav>`;
+}
+
 function getFrontmatter(markdown) {
   const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   if (!match) {
-    return { markdown, title: undefined, date: undefined };
+    return { markdown, title: undefined, date: undefined, links: [] };
   }
 
   const field = (name) =>
     match[1].match(new RegExp(`^${name}:\\s*(.+)\\s*$`, "m"))?.[1]
       ?.replace(/^(["'])(.*)\1$/, "$2");
+  const links = [];
+  const linkPattern =
+    /^\s*-\s*label:\s*["']?([^"'\r\n]+)["']?\s*\r?\n\s*url:\s*["']?(https?:\/\/[^"'\s]+)["']?\s*$/gm;
+  for (const linkMatch of match[1].matchAll(linkPattern)) {
+    links.push({ label: linkMatch[1].trim(), url: linkMatch[2] });
+  }
 
   return {
     markdown: markdown.slice(match[0].length),
     title: field("title"),
     date: field("date"),
+    description: field("description"),
+    links,
   };
+}
+
+async function getProjects() {
+  const entries = await readdir(projectsDirectory, { withFileTypes: true });
+  const filenames = entries
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".md"))
+    .map((entry) => entry.name);
+
+  const projects = await Promise.all(
+    filenames.map(async (filename) => {
+      const source = await readFile(path.join(projectsDirectory, filename), "utf8");
+      const { markdown, title, description, links } = getFrontmatter(source);
+      const heading = markdown.match(/^\s*#\s+(.+)\s*(?:\r?\n|$)/);
+      const projectTitle = title ?? heading?.[1] ?? filename.slice(0, -3);
+      const content = heading?.[1] === projectTitle
+        ? markdown.slice(heading[0].length).trimStart()
+        : markdown;
+      const html = sanitizeHtml(await marked.parse(content));
+      const excerptText = sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
+        .replace(/\s+/g, " ")
+        .trim();
+
+      return {
+        filename,
+        slug: filename.slice(0, -3),
+        title: projectTitle,
+        description:
+          description ??
+          (excerptText.length > 200
+            ? `${excerptText.slice(0, 197).trimEnd()}...`
+            : excerptText),
+        links,
+        html,
+      };
+    }),
+  );
+
+  return projects.sort((left, right) => left.title.localeCompare(right.title));
 }
 
 async function getPosts() {
@@ -140,11 +238,14 @@ const server = createServer(async (request, response) => {
 
   if (url.pathname === "/" || url.pathname === "/index.html") {
     try {
-      const [template, posts] = await Promise.all([
+      const [template, posts, projects] = await Promise.all([
         readFile(path.join(root, "index.html"), "utf8"),
         getPosts(),
+        getProjects(),
       ]);
-      const body = template.replace("__RECENT_POSTS__", renderRecentPosts(posts));
+      const body = template
+        .replace("__RECENT_POSTS__", renderRecentPosts(posts))
+        .replace("__FEATURED_PROJECTS__", renderFeaturedProjects(projects));
       response.writeHead(200, {
         "Content-Type": mimeTypes[".html"],
         "X-Content-Type-Options": "nosniff",
@@ -154,6 +255,77 @@ const server = createServer(async (request, response) => {
       console.error("Failed to render homepage:", error);
       response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
       response.end("Unable to load homepage.");
+    }
+    return;
+  }
+
+  if (url.pathname === "/projects") {
+    response.writeHead(301, { Location: `/projects/${url.search}` });
+    response.end();
+    return;
+  }
+
+  if (url.pathname === "/projects/" || url.pathname === "/projects/index.html") {
+    if (url.pathname === "/projects/index.html") {
+      response.writeHead(301, { Location: `/projects/${url.search}` });
+      response.end();
+      return;
+    }
+
+    try {
+      const [template, projects] = await Promise.all([
+        readFile(path.join(root, "projects.html"), "utf8"),
+        getProjects(),
+      ]);
+      const body = template.replace("__PROJECTS__", renderProjects(projects));
+      response.writeHead(200, {
+        "Content-Type": mimeTypes[".html"],
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(body);
+    } catch (error) {
+      console.error("Failed to render projects index:", error);
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Unable to load projects index.");
+    }
+    return;
+  }
+
+  const projectPageMatch = url.pathname.match(/^\/projects\/([^/]+)\/?$/);
+  if (projectPageMatch) {
+    try {
+      const slug = decodeURIComponent(projectPageMatch[1]);
+      if (!url.pathname.endsWith("/")) {
+        response.writeHead(301, {
+          Location: `/projects/${encodeURIComponent(slug)}/${url.search}`,
+        });
+        response.end();
+        return;
+      }
+
+      const project = (await getProjects()).find((entry) => entry.slug === slug);
+      if (!project) {
+        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        response.end("Project not found.");
+        return;
+      }
+
+      const template = await readFile(path.join(root, "project.html"), "utf8");
+      const body = template
+        .replaceAll("__CANONICAL_URL__", `${canonicalOrigin}/projects/${encodeURIComponent(slug)}/`)
+        .replaceAll("__PROJECT_TITLE__", escapeHtml(project.title))
+        .replaceAll("__PROJECT_DESCRIPTION__", escapeHtml(project.description))
+        .replace("__PROJECT_LINKS__", renderProjectLinks(project.links))
+        .replace("__PROJECT_CONTENT__", project.html);
+      response.writeHead(200, {
+        "Content-Type": mimeTypes[".html"],
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(body);
+    } catch (error) {
+      console.error("Failed to serve project:", error);
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Unable to load project.");
     }
     return;
   }
