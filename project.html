@@ -3,9 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="__PROJECT_DESCRIPTION__" />
+    <meta name="description" content="__SITE_DESCRIPTION__" />
     <meta name="author" content="Ewan Fabiani" />
-    <title>__PROJECT_TITLE__ - Ewan Fabiani</title>
+    __PROJECT_PUBLISHED_META__
+    <title>__PROJECT_TITLE__ | Ewan Fabiani Project</title>
     <link rel="canonical" href="__CANONICAL_URL__" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
@@ -16,7 +17,13 @@
   </head>
   <body>
     <main>
-      <a class="blog-back" href="/projects/">← Back to projects</a>
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span aria-hidden="true">/</span>
+        <a href="/projects/">Projects</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">__PROJECT_TITLE__</span>
+      </nav>
       <h1 class="blog-title">__PROJECT_TITLE__</h1>
       <p class="blog-intro">__PROJECT_DESCRIPTION__</p>
       __PROJECT_LINKS__

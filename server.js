@@ -9,6 +9,8 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const blogDirectory = path.join(root, "blog");
 const projectsDirectory = path.join(root, "projects");
 const canonicalOrigin = "https://ewanfabiani.com";
+const siteDescription =
+  "Ewan Fabiani's personal website featuring software projects, technical writing, and developer experiences.";
 const featuredProjectFilenames = ["d5-crypto.md"];
 const staticFiles = new Map([
   ["/robots.txt", path.join(root, "robots.txt")],
@@ -193,7 +195,7 @@ async function getProjects() {
   const projects = await Promise.all(
     filenames.map(async (filename) => {
       const source = await readFile(path.join(projectsDirectory, filename), "utf8");
-      const { markdown, title, description, links } = getFrontmatter(source);
+      const { markdown, title, description, date, links } = getFrontmatter(source);
       const heading = markdown.match(/^\s*#\s+(.+)\s*(?:\r?\n|$)/);
       const projectTitle = title ?? heading?.[1] ?? filename.slice(0, -3);
       const content = heading?.[1] === projectTitle
@@ -208,6 +210,7 @@ async function getProjects() {
         filename,
         slug: filename.slice(0, -3),
         title: projectTitle,
+        date: date ?? "",
         description:
           description ??
           (excerptText.length > 200
@@ -368,10 +371,15 @@ const server = createServer(async (request, response) => {
       }
 
       const template = await readFile(path.join(root, "project.html"), "utf8");
+      const publishedMeta = project.date
+        ? `<meta property="article:published_time" content="${escapeHtml(project.date)}" />`
+        : "";
       const body = template
         .replaceAll("__CANONICAL_URL__", `${canonicalOrigin}/projects/${encodeURIComponent(slug)}/`)
+        .replaceAll("__SITE_DESCRIPTION__", escapeHtml(siteDescription))
         .replaceAll("__PROJECT_TITLE__", escapeHtml(project.title))
         .replaceAll("__PROJECT_DESCRIPTION__", escapeHtml(project.description))
+        .replace("__PROJECT_PUBLISHED_META__", publishedMeta)
         .replace("__PROJECT_LINKS__", renderProjectLinks(project.links))
         .replace("__PROJECT_CONTENT__", project.html);
       response.writeHead(200, {
@@ -436,10 +444,14 @@ const server = createServer(async (request, response) => {
       const dateMarkup = post.date
         ? `<p class="blog-date">${escapeHtml(post.date)}</p>`
         : "";
+      const publishedMeta = post.date
+        ? `<meta property="article:published_time" content="${escapeHtml(post.date)}" />`
+        : "";
       const body = template
         .replaceAll("__CANONICAL_URL__", canonicalUrl)
         .replaceAll("__POST_TITLE__", escapeHtml(post.title))
         .replaceAll("__POST_DESCRIPTION__", escapeHtml(post.excerpt))
+        .replace("__POST_PUBLISHED_META__", publishedMeta)
         .replace("__POST_DATE__", dateMarkup)
         .replace("__POST_CONTENT__", post.html);
       response.writeHead(200, {

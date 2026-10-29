@@ -151,11 +151,16 @@ footer {
   }
 }
 
-.blog-back {
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   color: var(--muted);
+}
+.breadcrumbs a {
   text-decoration: none;
 }
-.blog-back:hover {
+.breadcrumbs a:hover {
   color: var(--link);
 }
 .blog-title {
