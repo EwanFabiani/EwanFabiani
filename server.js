@@ -21,6 +21,9 @@ const notFoundMessages = [
 ];
 const featuredProjectFilenames = ["d5-crypto.md"];
 const staticFiles = new Map([
+  ["/fonts/IBMPlexMono-Italic.woff2", path.join(root, "fonts", "IBMPlexMono-Italic.woff2")],
+  ["/fonts/IBMPlexMono-Regular.woff2", path.join(root, "fonts", "IBMPlexMono-Regular.woff2")],
+  ["/fonts/IBMPlexMono-SemiBold.woff2", path.join(root, "fonts", "IBMPlexMono-SemiBold.woff2")],
   ["/robots.txt", path.join(root, "robots.txt")],
   ["/style.css", path.join(root, "style.css")],
 ]);
@@ -29,6 +32,7 @@ const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
+  ".woff2": "font/woff2",
 };
 
 function escapeXml(value) {
@@ -502,9 +506,15 @@ const server = createServer(async (request, response) => {
 
   try {
     const body = await readFile(filePath);
-    response.writeHead(200, {
+    const headers = {
       "Content-Type": mimeTypes[path.extname(filePath)],
       "X-Content-Type-Options": "nosniff",
+    };
+    if (path.extname(filePath) === ".woff2") {
+      headers["Cache-Control"] = "public, max-age=31536000, immutable";
+    }
+    response.writeHead(200, {
+      ...headers,
     });
     response.end(body);
   } catch (error) {
