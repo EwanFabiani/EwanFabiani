@@ -128,7 +128,8 @@ ul li::before {
 .toc-placeholder {
   cursor: default;
 }
-.toc a span.dots {
+.toc a span.dots,
+.toc-placeholder span.dots {
   flex: 1;
   border-bottom: 1px dotted var(--muted);
   margin: 0 6px 6px;
