@@ -97,10 +97,14 @@ ul li::before {
 .toc {
   padding-left: 3ch;
 }
-.toc a {
+.toc a,
+.toc-placeholder {
   color: var(--fg);
   text-decoration: none;
   display: flex;
+}
+.toc-placeholder {
+  cursor: default;
 }
 .toc a span.dots {
   flex: 1;
