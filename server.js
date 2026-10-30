@@ -34,12 +34,25 @@ const mimeTypes = {
   ".txt": "text/plain; charset=utf-8",
   ".woff2": "font/woff2",
 };
+const trackingScript = `    <script
+      defer
+      src="https://tracking.ewanfabiani.com/script.js"
+      data-website-id="5664f9a9-0120-4e26-875c-c4cad0a2e5a4"
+    ></script>`;
 
 function getCurrentMonthYear() {
   return new Intl.DateTimeFormat("en-US", {
     month: "long",
     year: "numeric",
   }).format(new Date());
+}
+
+function injectTrackingScript(html) {
+  if (html.includes("https://tracking.ewanfabiani.com/script.js")) {
+    return html;
+  }
+
+  return html.replace("</head>", `${trackingScript}\n  </head>`);
 }
 
 function escapeXml(value) {
@@ -193,7 +206,7 @@ async function serveNotFound(response) {
       "Content-Type": mimeTypes[".html"],
       "X-Content-Type-Options": "nosniff",
     });
-    response.end(body);
+    response.end(injectTrackingScript(body));
   } catch (error) {
     console.error("Failed to render 404 page:", error);
     response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
@@ -351,7 +364,7 @@ const server = createServer(async (request, response) => {
         "Content-Type": mimeTypes[".html"],
         "X-Content-Type-Options": "nosniff",
       });
-      response.end(body);
+      response.end(injectTrackingScript(body));
     } catch (error) {
       console.error("Failed to render homepage:", error);
       response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
@@ -383,7 +396,7 @@ const server = createServer(async (request, response) => {
         "Content-Type": mimeTypes[".html"],
         "X-Content-Type-Options": "nosniff",
       });
-      response.end(body);
+      response.end(injectTrackingScript(body));
     } catch (error) {
       console.error("Failed to render projects index:", error);
       response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
@@ -426,7 +439,7 @@ const server = createServer(async (request, response) => {
         "Content-Type": mimeTypes[".html"],
         "X-Content-Type-Options": "nosniff",
       });
-      response.end(body);
+      response.end(injectTrackingScript(body));
     } catch (error) {
       console.error("Failed to serve project:", error);
       response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
@@ -452,7 +465,7 @@ const server = createServer(async (request, response) => {
         "Content-Type": mimeTypes[".html"],
         "X-Content-Type-Options": "nosniff",
       });
-      response.end(body);
+      response.end(injectTrackingScript(body));
     } catch (error) {
       console.error("Failed to render blog index:", error);
       response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
@@ -497,7 +510,7 @@ const server = createServer(async (request, response) => {
         "Content-Type": mimeTypes[".html"],
         "X-Content-Type-Options": "nosniff",
       });
-      response.end(body);
+      response.end(injectTrackingScript(body));
     } catch (error) {
       console.error("Failed to serve blog post:", error);
       response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
