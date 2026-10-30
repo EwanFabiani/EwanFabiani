@@ -15,7 +15,7 @@ const notFoundMessages = [
   "This page was never ratified by the RFC committee.",
   "Congratulations, you found an undocumented endpoint.",
   "This URL has been deprecated due to lack of funding.",
-  "Page not found. Maybe it's still \"coming soon.\"",
+  "Page not found. Maybe it's still \"coming soon\".",
   "Have you tried turning the internet off and on again?",
   "This endpoint has gone to touch grass.",
 ];
