@@ -367,7 +367,7 @@ const server = createServer(async (request, response) => {
 
     try {
       const [template, projects] = await Promise.all([
-        readFile(path.join(root, "projects.html"), "utf8"),
+        readFile(path.join(projectsDirectory, "index.html"), "utf8"),
         getProjects(),
       ]);
       const body = template.replace("__PROJECTS__", renderProjects(projects));
@@ -402,7 +402,7 @@ const server = createServer(async (request, response) => {
         return;
       }
 
-      const template = await readFile(path.join(root, "project.html"), "utf8");
+      const template = await readFile(path.join(projectsDirectory, "project.html"), "utf8");
       const publishedMeta = project.date
         ? `<meta property="article:published_time" content="${escapeHtml(project.date)}" />`
         : "";
