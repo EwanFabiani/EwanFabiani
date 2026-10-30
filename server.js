@@ -35,6 +35,13 @@ const mimeTypes = {
   ".woff2": "font/woff2",
 };
 
+function getCurrentMonthYear() {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+}
+
 function escapeXml(value) {
   return value.replace(/[&<>"']/g, (character) => {
     const entities = {
@@ -338,7 +345,8 @@ const server = createServer(async (request, response) => {
       ]);
       const body = template
         .replace("__RECENT_POSTS__", renderRecentPosts(posts))
-        .replace("__FEATURED_PROJECTS__", renderFeaturedProjects(projects));
+        .replace("__FEATURED_PROJECTS__", renderFeaturedProjects(projects))
+        .replace("__CURRENT_MONTH_YEAR__", getCurrentMonthYear());
       response.writeHead(200, {
         "Content-Type": mimeTypes[".html"],
         "X-Content-Type-Options": "nosniff",
