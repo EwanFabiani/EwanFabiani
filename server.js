@@ -6,7 +6,10 @@ import { marked } from "marked";
 import sanitizeHtml from "sanitize-html";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
+const isDevelopment =
+  process.argv.includes("--dev") || process.env.NODE_ENV === "development";
 const blogDirectory = path.join(root, "blog");
+const papersDirectory = path.join(root, "papers");
 const projectsDirectory = path.join(root, "projects");
 const canonicalOrigin = "https://ewanfabiani.com";
 const siteDescription =
@@ -48,6 +51,10 @@ function getCurrentMonthYear() {
 }
 
 function injectTrackingScript(html) {
+  if (isDevelopment) {
+    return html;
+  }
+
   if (html.includes("https://tracking.ewanfabiani.com/script.js")) {
     return html;
   }
@@ -171,6 +178,7 @@ function renderSitemap(posts, projects) {
   const urls = [
     { loc: `${canonicalOrigin}/` },
     { loc: `${canonicalOrigin}/blog/` },
+    { loc: `${canonicalOrigin}/papers/` },
     { loc: `${canonicalOrigin}/projects/` },
     ...posts.map((post) => ({
       loc: `${canonicalOrigin}/blog/${encodeURIComponent(post.slug)}/`,
@@ -333,6 +341,12 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/papers") {
+    response.writeHead(301, { Location: `/papers/${url.search}` });
+    response.end();
+    return;
+  }
+
   if (url.pathname === "/sitemap.xml") {
     try {
       const [posts, projects] = await Promise.all([getPosts(), getProjects()]);
@@ -376,6 +390,31 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/projects") {
     response.writeHead(301, { Location: `/projects/${url.search}` });
     response.end();
+    return;
+  }
+
+  if (url.pathname === "/papers/" || url.pathname === "/papers/index.html") {
+    if (url.pathname === "/papers/index.html") {
+      response.writeHead(301, { Location: `/papers/${url.search}` });
+      response.end();
+      return;
+    }
+
+    try {
+      const body = await readFile(
+        path.join(papersDirectory, "index.html"),
+        "utf8",
+      );
+      response.writeHead(200, {
+        "Content-Type": mimeTypes[".html"],
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(injectTrackingScript(body));
+    } catch (error) {
+      console.error("Failed to render papers index:", error);
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Unable to load papers index.");
+    }
     return;
   }
 

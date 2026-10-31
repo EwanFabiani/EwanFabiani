@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node server.js --dev",
     "start": "node server.js"
   },
   "dependencies": {
