@@ -201,6 +201,47 @@ function renderSitemap(posts, projects) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
+function formatRssDate(date) {
+  if (!date) {
+    return "";
+  }
+
+  const parsedDate = new Date(`${date}T00:00:00Z`);
+  return Number.isNaN(parsedDate.getTime()) ? "" : parsedDate.toUTCString();
+}
+
+function renderRss(posts) {
+  const items = posts
+    .map((post) => {
+      const link = `${canonicalOrigin}/blog/${encodeURIComponent(post.slug)}/`;
+      const publishedDate = formatRssDate(post.date);
+      const dateMarkup = publishedDate
+        ? `\n      <pubDate>${escapeXml(publishedDate)}</pubDate>`
+        : "";
+      const content = post.html.replace(/\]\]>/g, "]]]]><![CDATA[>");
+
+      return `    <item>
+        <title>${escapeXml(post.title)}</title>
+        <link>${escapeXml(link)}</link>
+        <guid isPermaLink="true">${escapeXml(link)}</guid>${dateMarkup}
+        <description><![CDATA[${content}]]></description>
+      </item>`;
+    })
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+  <rss version="2.0">
+    <channel>
+      <title>Ewan Fabiani - Writing</title>
+      <link>${canonicalOrigin}/blog/</link>
+      <description>${escapeXml(siteDescription)}</description>
+      <language>en</language>
+  ${items}
+    </channel>
+  </rss>
+  `;
+}
+
 async function serveNotFound(response) {
   try {
     const template = await readFile(path.join(root, "404.html"), "utf8");
@@ -359,6 +400,22 @@ const server = createServer(async (request, response) => {
       console.error("Failed to render sitemap:", error);
       response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
       response.end("Unable to load sitemap.");
+    }
+    return;
+  }
+
+  if (url.pathname === "/feed.xml") {
+    try {
+      const posts = await getPosts();
+      response.writeHead(200, {
+        "Content-Type": "application/rss+xml; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(renderRss(posts));
+    } catch (error) {
+      console.error("Failed to render RSS feed:", error);
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Unable to load RSS feed.");
     }
     return;
   }
